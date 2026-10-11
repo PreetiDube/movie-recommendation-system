@@ -55,13 +55,16 @@ if len(search_text.strip()) >= 3:
         if search_text.strip().casefold() in title.casefold()
     ][:100]
 
-    if matching_titles:
-        selected_title = st.selectbox(
-            "Choose a movie from the search results",
-            options=matching_titles,
-            index=0,
-            key="movie_selection"
-        )
+    
+if matching_titles:
+    selected_title = st.selectbox(
+        "Choose a movie from the search results",
+        options=matching_titles,
+        index=None,
+        placeholder="Select the exact movie...",
+        key="movie_selection"
+    )
+
     else:
         selected_title = None
         st.info("No matching movies found. Try another title.")
