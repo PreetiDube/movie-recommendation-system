@@ -37,17 +37,32 @@ st.write(
 def get_movie_options(titles):
     return titles
 
-movie_titles = movies_model["title"].fillna("").astype(str)
-unique_titles = sorted(movie_titles[movie_titles.str.strip() != ""].unique())
 
+movie_titles = movies_model["title"].fillna("").astype(str)
+unique_titles = sorted(
+    movie_titles[movie_titles.str.strip() != ""].unique()
+)
+
+search_text = st.text_input(
+    "Search for a movie",
+    placeholder="Type at least 3 letters of a movie title..."
+)
+
+if len(search_text.strip()) >= 3:
+    matching_titles = [
+        title for title in unique_titles
+        if search_text.strip().casefold() in title.casefold()
+    ][:100]
+else:
+    matching_titles = []
 
 selected_title = st.selectbox(
-    "Search and select a movie",
-    options=unique_titles,
+    "Select a matching movie",
+    options=matching_titles,
     index=None,
-    placeholder="Type a movie title...",
-    key="movie_search"
+    placeholder="Search above to see matching movies..."
 )
+
 
 
 top_n = st.slider(
