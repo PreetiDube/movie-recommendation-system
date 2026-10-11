@@ -125,13 +125,15 @@ def recommend(movie_title, top_n=10):
         "id": movies_model["id"].astype(str).to_numpy()
     })
 
-    ranking = ranking.sort_values(
-        ["score", "id"],
-        ascending=[False, True],
-        kind="mergesort"
-    )
+ranking = ranking[ranking["index"] != movie_index]
 
-    top_indices = ranking.head(top_n)["index"].to_numpy()
+ranking = ranking.sort_values(
+    ["score", "id"],
+    ascending=[False, True],
+    kind="mergesort"
+)
+
+top_indices = ranking.head(top_n)["index"].to_numpy()
 
     result = movies_model.iloc[top_indices][[
         "title", "genre", "director",
