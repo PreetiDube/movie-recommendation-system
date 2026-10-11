@@ -137,7 +137,7 @@ def recommend(movie_title, top_n=10):
     "title", "genre", "director",
     "originalLanguage", "reviewCount", "smoothed_sentiment"
         ]].copy()
-    
+
     result["Recommendation Score"] = [
     round(float(final_scores[i]), 4) for i in top_indices
     ]
