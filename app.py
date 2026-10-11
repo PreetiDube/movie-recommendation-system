@@ -40,12 +40,15 @@ def get_movie_options(titles):
 movie_titles = movies_model["title"].fillna("").astype(str)
 unique_titles = sorted(movie_titles[movie_titles.str.strip() != ""].unique())
 
+
 selected_title = st.selectbox(
     "Search and select a movie",
     options=unique_titles,
     index=None,
-    placeholder="Type a movie title..."
+    placeholder="Type a movie title...",
+    key="movie_search"
 )
+
 
 top_n = st.slider(
     "Number of recommendations",
