@@ -43,9 +43,11 @@ unique_titles = sorted(
     movie_titles[movie_titles.str.strip() != ""].unique()
 )
 
+
 search_text = st.text_input(
     "Search for a movie",
-    placeholder="Type at least 3 letters of a movie title..."
+    placeholder="Type at least 3 letters of a movie title...",
+    key="movie_search"
 )
 
 if len(search_text.strip()) >= 3:
@@ -56,12 +58,17 @@ if len(search_text.strip()) >= 3:
 else:
     matching_titles = []
 
-selected_title = st.selectbox(
-    "Select a matching movie",
-    options=matching_titles,
-    index=None,
-    placeholder="Search above to see matching movies..."
-)
+selected_title = None
+
+if matching_titles:
+    selected_title = st.selectbox(
+        "Select a matching movie",
+        options=matching_titles,
+        index=None,
+        placeholder="Choose a movie...",
+        key="movie_selection"
+    )
+
 
 
 
