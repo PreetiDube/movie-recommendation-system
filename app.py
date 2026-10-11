@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-MODEL_PATH = Path(__file__).parent / "model" / "recommendation_model.joblib"
+MODEL_PATH = Path(__file__).parent / "recommendation_model.joblib"
 
 @st.cache_resource
 def load_model():
