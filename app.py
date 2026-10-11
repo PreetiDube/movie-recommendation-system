@@ -133,10 +133,10 @@ def recommend(movie_title, top_n=10):
         )
     top_indices = ranking.head(top_n)["index"].to_numpy()
 
-    result = movies_model.iloc[top_indices][[
-        "title", "genre", "director",
-        "originalLanguage", "reviewCount", "smoothed_sentiment"
-    ]].copy()
+result = movies_model.iloc[top_indices][[
+    "title", "genre", "director",
+    "originalLanguage", "reviewCount", "smoothed_sentiment"
+]].copy()
 
     result["Recommendation Score"] = [
         round(float(final_scores[i]), 4) for i in top_indices
