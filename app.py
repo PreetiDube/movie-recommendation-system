@@ -138,8 +138,8 @@ result = movies_model.iloc[top_indices][[
     "originalLanguage", "reviewCount", "smoothed_sentiment"
 ]].copy()
 
-    result["Recommendation Score"] = [
-        round(float(final_scores[i]), 4) for i in top_indices
+result["Recommendation Score"] = [
+    round(float(final_scores[i]), 4) for i in top_indices
     ]
 
     result = result.rename(columns={
