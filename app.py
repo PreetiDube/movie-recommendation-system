@@ -61,12 +61,24 @@ if missing_columns:
     st.error(f"Missing columns in the saved model: {sorted(missing_columns)}")
     st.stop()
 
-st.title("🎬 Movie Recommendation System")
 
-st.write(
-    "Discover movies based on genre, director, language, "
-    "and available critic-review sentiment."
+st.markdown(
+    """
+    <div style="text-align:center; padding: 25px 0 20px 0;">
+        <p style="color:#E50914; font-size:14px; letter-spacing:4px; font-weight:600;">
+            YOUR NEXT FAVORITE FILM
+        </p>
+        <h1 style="font-size:42px; margin:0; color:#FFFFFF;">
+            🎬 Movie <span style="color:#E50914;">Discovery</span>
+        </h1>
+        <p style="color:#B8B8C2; font-size:17px; margin-top:12px;">
+            Discover your next favorite movie through intelligent recommendations.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
+
 
 # Build the searchable movie list using both title and ID.
 movie_options = movies_model[["id", "title"]].copy()
