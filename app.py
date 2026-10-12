@@ -78,9 +78,7 @@ movie_options = movie_options[
     & (movie_options["id"].str.strip() != "")
 ].drop_duplicates(subset=["id"])
 
-movie_options["display"] = (
-    movie_options["title"] + " — " + movie_options["id"]
-)
+movie_options["display"] = movie_options["title"]
 
 search_text = st.text_input(
     "Search for a movie",
