@@ -125,7 +125,7 @@ def recommend(movie_title, top_n=10):
         "id": movies_model["id"].astype(str).to_numpy()
     })
 
-    ranking = ranking[ranking["index"] != movie_index]
+    ranking = ranking[ranking["id"] != movie_id]
     ranking = ranking.sort_values(
     ["score", "id"],
     ascending=[False, True],
