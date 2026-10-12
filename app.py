@@ -92,11 +92,16 @@ movie_options = movie_options[
 
 movie_options["display"] = movie_options["title"]
 
-search_text = st.text_input(
-    "🔎 FIND YOUR MOVIE",
-    placeholder="Type at least 3 letters of a movie title...",
-    key="movie_search"
-)
+with st.container(border=True):
+    st.markdown("### 🔎 Find Your Movie")
+    st.caption("Search for a film to discover similar movies.")
+
+    search_text = st.text_input(
+        "Movie title",
+        placeholder="Type at least 3 letters of a movie title...",
+        key="movie_search",
+        label_visibility="collapsed"
+    )
 
 selected_movie_id = None
 
