@@ -80,17 +80,18 @@ top_n = st.slider(
 )
 
 def recommend(movie_title, top_n=10):
-    matches = movies_model[
+        matches = movies_model[
         movies_model["title"].fillna("").astype(str) == movie_title
     ]
 
     if matches.empty:
         return None, None
 
-    # If multiple records share a title, use the first matching record.
+    # Use the selected movie's ID to identify the exact record.
     movie_id = str(matches.iloc[0]["id"])
     movie_index = id_to_index.get(movie_id)
 
+    
     if movie_index is None:
         return None, None
 
