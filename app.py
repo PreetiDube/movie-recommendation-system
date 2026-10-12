@@ -15,32 +15,71 @@ st.set_page_config(
 
 MODEL_PATH = Path(__file__).parent / "recommendation_model.joblib"
 
+
 @st.cache_resource
 def load_model():
     return joblib.load(MODEL_PATH)
 
+
 bundle = load_model()
 
-movies_model = bundle["movies"]
+movies_model = bundle["movies"].reset_index(drop=True)
 id_to_index = bundle["id_to_index"]
 genre_matrix = bundle["genre_matrix"]
 director_matrix = bundle["director_matrix"]
 language_matrix = bundle["language_matrix"]
 
+# Validate the saved model before recommending movies.
+n_movies = len(movies_model)
+
+if not (
+    genre_matrix.shape[0]
+    == director_matrix.shape[0]
+    == language_matrix.shape[0]
+    == n_movies
+):
+    st.error(
+        "The saved movie data and feature matrices have different "
+        "row counts. Please check how recommendation_model.joblib "
+        "was created."
+    )
+    st.stop()
+
+required_columns = {
+    "id",
+    "title",
+    "genre",
+    "director",
+    "originalLanguage",
+    "reviewCount",
+    "smoothed_sentiment",
+}
+
+missing_columns = required_columns - set(movies_model.columns)
+
+if missing_columns:
+    st.error(f"Missing columns in the saved model: {sorted(missing_columns)}")
+    st.stop()
+
 st.title("🎬 Movie Recommendation System")
+
 st.write(
     "Discover movies based on genre, director, language, "
     "and available critic-review sentiment."
 )
 
-@st.cache_data
-def get_movie_options(titles):
-    return titles
+# Build the searchable movie list using both title and ID.
+movie_options = movies_model[["id", "title"]].copy()
+movie_options["id"] = movie_options["id"].astype(str)
+movie_options["title"] = movie_options["title"].fillna("").astype(str)
 
+movie_options = movie_options[
+    (movie_options["title"].str.strip() != "")
+    & (movie_options["id"].str.strip() != "")
+].drop_duplicates(subset=["id"])
 
-movie_titles = movies_model["title"].fillna("").astype(str)
-unique_titles = sorted(
-    movie_titles[movie_titles.str.strip() != ""].unique()
+movie_options["display"] = (
+    movie_options["title"] + " — " + movie_options["id"]
 )
 
 search_text = st.text_input(
@@ -49,27 +88,38 @@ search_text = st.text_input(
     key="movie_search"
 )
 
+selected_movie_id = None
 
 if len(search_text.strip()) >= 3:
-    matching_titles = [
-        title for title in unique_titles
-        if search_text.strip().casefold() in title.casefold()
-    ][:100]
+    matching_movies = movie_options[
+        movie_options["title"].str.contains(
+            search_text.strip(),
+            case=False,
+            regex=False,
+            na=False
+        )
+    ].sort_values(["title", "id"]).head(100)
 
-    if matching_titles:
-        selected_title = st.selectbox(
+    if not matching_movies.empty:
+        display_to_id = dict(
+            zip(matching_movies["display"], matching_movies["id"])
+        )
+
+        selected_display = st.selectbox(
             "Choose a movie from the search results",
-            options=matching_titles,
+            options=list(display_to_id.keys()),
             index=None,
             placeholder="Select the exact movie...",
             key="movie_selection"
         )
-    else:
-        selected_title = None
-        st.info("No matching movies found. Try another title.")
-else:
-    selected_title = None
 
+        if selected_display is not None:
+            selected_movie_id = display_to_id[selected_display]
+    else:
+        st.info("No matching movies found. Try another title.")
+
+else:
+    st.caption("Enter at least 3 letters to search for a movie.")
 
 
 top_n = st.slider(
@@ -79,21 +129,24 @@ top_n = st.slider(
     value=10
 )
 
-def recommend(movie_title, top_n=10):
-    matches = movies_model[
-        movies_model["title"].fillna("").astype(str) == movie_title
-    ]
 
-    if matches.empty:
-        return None, None
+def recommend(movie_id, top_n=10):
+    movie_id = str(movie_id)
 
-    # Find the selected movie
-    movie_id = str(matches.iloc[0]["id"])
-    movie_index = id_to_index.get(movie_id)
+    matches = movies_model.index[
+        movies_model["id"].astype(str) == movie_id
+    ].tolist()
 
-    if movie_index is None:
-        return None, None
+    if not matches:
+        return None
 
+    movie_index = matches[0]
+
+    # Confirm the ID-to-row mapping before calculating similarities.
+    if str(movies_model.iloc[movie_index]["id"]) != movie_id:
+        return None
+
+    # Calculate similarity against every movie.
     genre_scores = cosine_similarity(
         genre_matrix[movie_index], genre_matrix
     ).ravel()
@@ -106,6 +159,7 @@ def recommend(movie_title, top_n=10):
         language_matrix[movie_index], language_matrix
     ).ravel()
 
+    # Preserve the original scoring formula.
     base_scores = (
         0.65 * genre_scores
         + 0.15 * director_scores
@@ -113,33 +167,47 @@ def recommend(movie_title, top_n=10):
     )
 
     sentiment = movies_model["smoothed_sentiment"].to_numpy(dtype=float)
-    has_sentiment = ~np.isnan(sentiment)
+    has_sentiment = np.isfinite(sentiment)
 
     final_scores = base_scores.copy()
-    final_scores[has_sentiment] += 0.10 * sentiment[has_sentiment]
+    final_scores[has_sentiment] += (
+        0.10 * sentiment[has_sentiment]
+    )
+
+    # Never recommend the selected movie itself.
     final_scores[movie_index] = -1
 
     ranking = pd.DataFrame({
-        "index": np.arange(len(movies_model)),
+        "index": np.arange(n_movies),
         "score": final_scores,
         "id": movies_model["id"].astype(str).to_numpy()
     })
 
-    ranking = ranking[ranking["id"] != movie_id]
+    ranking = ranking[
+        (ranking["index"] != movie_index)
+        & (ranking["id"] != movie_id)
+    ]
+
     ranking = ranking.sort_values(
-    ["score", "id"],
-    ascending=[False, True],
-    kind="mergesort"
-        )
+        ["score", "id"],
+        ascending=[False, True],
+        kind="mergesort"
+    )
+
     top_indices = ranking.head(top_n)["index"].to_numpy()
-    
+
     result = movies_model.iloc[top_indices][[
-    "title", "genre", "director",
-    "originalLanguage", "reviewCount", "smoothed_sentiment"
-        ]].copy()
+        "title",
+        "genre",
+        "director",
+        "originalLanguage",
+        "reviewCount",
+        "smoothed_sentiment"
+    ]].copy()
 
     result["Recommendation Score"] = [
-    round(float(final_scores[i]), 4) for i in top_indices
+        round(float(final_scores[i]), 4)
+        for i in top_indices
     ]
 
     result = result.rename(columns={
@@ -151,24 +219,37 @@ def recommend(movie_title, top_n=10):
         "smoothed_sentiment": "Critic Sentiment"
     })
 
-    return movie_id, result.reset_index(drop=True)
+    result["Critic Sentiment"] = result["Critic Sentiment"].round(4)
+
+    return result.reset_index(drop=True)
+
 
 if st.button("Recommend Movies", type="primary"):
-    if not selected_title:
-        st.warning("Please select a movie first.")
+    if selected_movie_id is None:
+        st.warning("Please search for and select a movie first.")
     else:
+        selected_rows = movies_model[
+            movies_model["id"].astype(str) == selected_movie_id
+        ]
+
+        selected_title = selected_rows.iloc[0]["title"]
+
         with st.spinner("Finding similar movies..."):
-            movie_id, recommendations = recommend(selected_title, top_n)
+            recommendations = recommend(selected_movie_id, top_n)
 
         if recommendations is None:
             st.error("Could not generate recommendations for this movie.")
+        elif recommendations.empty:
+            st.warning("No recommendations are available.")
         else:
             st.subheader(f"Movies similar to {selected_title}")
+
             st.dataframe(
                 recommendations,
                 use_container_width=True,
                 hide_index=True
             )
+
 
 st.caption(
     "Recommendations are generated using content similarity "
