@@ -93,7 +93,7 @@ movie_options = movie_options[
 movie_options["display"] = movie_options["title"]
 
 search_text = st.text_input(
-    "Search for a movie",
+    "🔎 FIND YOUR MOVIE",
     placeholder="Type at least 3 letters of a movie title...",
     key="movie_search"
 )
@@ -129,7 +129,7 @@ if len(search_text.strip()) >= 3:
         st.info("No matching movies found. Try another title.")
 
 else:
-    st.caption("Enter at least 3 letters to search for a movie.")
+    st.caption("Search by movie title to discover similar films.")
 
 
 top_n = st.slider(
