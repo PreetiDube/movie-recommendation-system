@@ -1,469 +1,185 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-
 from pathlib import Path
 from sklearn.metrics.pairwise import cosine_similarity
 
-st.set_page_config(
-    page_title="Movie Discovery",
-    page_icon="🎬",
-    layout="wide"
-)
+try:
+    import requests
+except ImportError:
+    requests = None
 
+st.set_page_config(page_title="Movie Discovery", page_icon="🎬", layout="wide")
 MODEL_PATH = Path(__file__).parent / "recommendation_model.joblib"
-
 
 @st.cache_resource
 def load_model():
     return joblib.load(MODEL_PATH)
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_poster(title, api_key):
+    if not api_key or requests is None:
+        return None
+    try:
+        r = requests.get("https://api.themoviedb.org/3/search/movie",
+                         params={"api_key": api_key, "query": str(title)}, timeout=4)
+        r.raise_for_status()
+        results = r.json().get("results", [])
+        if results and results[0].get("poster_path"):
+            return "https://image.tmdb.org/t/p/w500" + results[0]["poster_path"]
+    except Exception:
+        pass
+    return None
 
 bundle = load_model()
-
-movies_model = bundle["movies"].reset_index(drop=True)
-id_to_index = bundle["id_to_index"]
+movies = bundle["movies"].reset_index(drop=True)
 genre_matrix = bundle["genre_matrix"]
 director_matrix = bundle["director_matrix"]
 language_matrix = bundle["language_matrix"]
+n = len(movies)
 
-n_movies = len(movies_model)
-
-if not (
-    genre_matrix.shape[0]
-    == director_matrix.shape[0]
-    == language_matrix.shape[0]
-    == n_movies
-):
-    st.error(
-        "The saved movie data and feature matrices have different "
-        "row counts. Please check recommendation_model.joblib."
-    )
+if not (genre_matrix.shape[0] == director_matrix.shape[0] == language_matrix.shape[0] == n):
+    st.error("Movie data and feature matrices have different row counts. Check recommendation_model.joblib.")
     st.stop()
 
-required_columns = {
-    "id",
-    "title",
-    "genre",
-    "director",
-    "originalLanguage",
-    "reviewCount",
-    "smoothed_sentiment",
-}
-
-missing_columns = required_columns - set(movies_model.columns)
-
-if missing_columns:
-    st.error(f"Missing columns in the saved model: {sorted(missing_columns)}")
+required = {"id", "title", "genre", "director", "originalLanguage", "reviewCount", "smoothed_sentiment"}
+missing = required - set(movies.columns)
+if missing:
+    st.error(f"Missing model columns: {sorted(missing)}")
     st.stop()
 
+st.markdown("""
+<style>
+.stApp{background:radial-gradient(ellipse at 85% 0%,#35131f 0,transparent 32%),radial-gradient(ellipse at 5% 35%,#12243b 0,transparent 35%),#080d15;color:#f5f7fb}
+.block-container{max-width:1500px;padding-top:1.3rem}
+.hero{padding:30px;border-radius:20px;border:1px solid #293343;background:linear-gradient(110deg,#0c1421,#111b2a 60%,#401c2a);margin-bottom:22px}
+.eyebrow{color:#ff4059;letter-spacing:4px;font-size:12px;font-weight:800;text-transform:uppercase}
+.hero-title{font-size:clamp(30px,4vw,48px);font-weight:850;line-height:1.15;margin:8px 0}
+.hero-title span{color:#ff4059}.hero-sub{color:#bdc7d6;font-size:16px}
+.panel{padding:20px;border:1px solid #303a4a;border-radius:17px;background:linear-gradient(145deg,#151e2d,#0c121c);margin:10px 0 22px}
+.movie-card{border:1px solid #2d3747;border-radius:15px;background:linear-gradient(145deg,#182231,#0c121c);padding:12px;min-height:280px;margin-bottom:14px}
+.poster{height:165px;border-radius:10px;background:radial-gradient(circle at 25% 20%,#a43c52,transparent 38%),linear-gradient(135deg,#263b56,#111722 60%,#512031);display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:12px;overflow:hidden}
+.poster img{width:100%;height:165px;object-fit:cover}
+.movie-name{font-size:16px;font-weight:800;margin-bottom:6px}
+.score{display:inline-block;border:1px solid #b82b43;background:#351520;color:#ff7181;border-radius:9px;padding:4px 8px;font-size:12px;font-weight:800}
+.meta{color:#b4bfd0;font-size:12px;line-height:1.5;margin-top:7px}
+div.stButton>button[kind="primary"]{border:0;border-radius:11px;min-height:47px;font-weight:800;background:linear-gradient(100deg,#ed183b,#ff4d60);color:white}
+div[data-testid="stTextInput"] input,div[data-testid="stSelectbox"] div[data-baseweb="select"]>div{background:#1b2433;border-radius:10px}
+div[data-testid="stDataFrame"]{border:1px solid #2d3747;border-radius:12px;overflow:hidden}
+.footer{color:#8290a5;font-size:12px;text-align:center;margin-top:30px}
+</style>
+<div class="hero">
+ <div class="eyebrow">Your next favourite film</div>
+ <div class="hero-title">🎬 Movie <span>Recommendation System</span></div>
+ <div class="hero-sub">Discover films using genre, director, language, and available critic-review sentiment.</div>
+</div>
+""", unsafe_allow_html=True)
 
-# -------------------- VISUAL DESIGN --------------------
+options = movies[["id", "title"]].copy()
+options["id"] = options["id"].astype(str)
+options["title"] = options["title"].fillna("").astype(str)
+options = options[options["title"].str.strip().ne("") & options["id"].str.strip().ne("")].drop_duplicates("id")
+dupes = options["title"].duplicated(keep=False)
+options["display"] = options["title"]
+options.loc[dupes, "display"] = options.loc[dupes, "title"] + " · " + options.loc[dupes, "id"]
+options = options.sort_values(["title", "id"])
 
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #0E1016;
-    }
-
-    .block-container {
-        max-width: 1250px;
-        padding-top: 1.5rem;
-        padding-bottom: 3rem;
-    }
-
-    div.stButton > button[kind="primary"] {
-        background: linear-gradient(90deg, #E50914, #FF414D);
-        color: white;
-        border: none;
-        border-radius: 9px;
-        font-weight: 700;
-        min-height: 44px;
-        padding: 0.5rem 1.5rem;
-    }
-
-    div.stButton > button[kind="primary"]:hover {
-        background: #FF414D;
-        border: none;
-        color: white;
-    }
-
-    [data-testid="stMetric"] {
-        background: #191C25;
-        border: 1px solid #303442;
-        border-radius: 10px;
-        padding: 12px;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# -------------------- HERO HEADER --------------------
-
-st.markdown(
-    """
-    <div style="text-align:center; padding:22px 0 28px 0;">
-        <p style="color:#FF414D; font-size:13px;
-                  letter-spacing:4px; font-weight:700;">
-            YOUR NEXT FAVORITE FILM
-        </p>
-        <h1 style="font-size:44px; margin:0; color:#FFFFFF;">
-            🎬 Movie <span style="color:#FF414D;">Discovery</span>
-        </h1>
-        <p style="color:#B8BBC7; font-size:17px; margin-top:12px;">
-            Discover films you'll love with intelligent recommendations.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# -------------------- MOVIE SEARCH OPTIONS --------------------
-
-movie_options = movies_model[["id", "title"]].copy()
-movie_options["id"] = movie_options["id"].astype(str)
-movie_options["title"] = movie_options["title"].fillna("").astype(str)
-
-movie_options = movie_options[
-    (movie_options["title"].str.strip() != "")
-    & (movie_options["id"].str.strip() != "")
-].drop_duplicates(subset=["id"]).copy()
-
-# Keep ordinary titles clean, but disambiguate duplicate titles.
-duplicate_titles = movie_options["title"].duplicated(keep=False)
-
-movie_options["display"] = movie_options["title"]
-
-movie_options.loc[duplicate_titles, "display"] = (
-    movie_options.loc[duplicate_titles, "title"]
-    + " · "
-    + movie_options.loc[duplicate_titles, "id"]
-)
-
-
-# -------------------- SEARCH PANEL --------------------
-
-selected_movie_id = None
-
-with st.container(border=True):
-    st.markdown("### 🔎 Find Your Movie")
-    st.caption(
-        "Search by title, choose your movie, and customize your recommendations."
-    )
-
-    search_text = st.text_input(
-        "Movie title",
-        placeholder="Type at least 3 letters of a movie title...",
-        key="movie_search",
-        label_visibility="collapsed"
-    )
-
-    matching_movies = movie_options.iloc[0:0].copy()
-
-    if len(search_text.strip()) >= 3:
-        matching_movies = movie_options[
-            movie_options["title"].str.contains(
-                search_text.strip(),
-                case=False,
-                regex=False,
-                na=False
-            )
-        ].sort_values(["title", "id"]).head(100)
-
-        if matching_movies.empty:
-            st.info("No matching movies found. Try another title.")
-
-    else:
-        st.caption("Enter at least 3 letters to search for a movie.")
-
-    if not matching_movies.empty:
-        display_to_id = dict(
-            zip(matching_movies["display"], matching_movies["id"])
-        )
-
-        selected_display = st.selectbox(
-            "Choose a movie",
-            options=list(display_to_id.keys()),
-            index=None,
-            placeholder="Select the exact movie...",
-            key="movie_selection"
-        )
-
-        if selected_display is not None:
-            selected_movie_id = display_to_id[selected_display]
-
-    st.divider()
-
-    st.markdown("**How many recommendations would you like?**")
-
-    top_n = st.slider(
-        "Number of recommendations",
-        min_value=5,
-        max_value=20,
-        value=10,
-        label_visibility="collapsed"
-    )
-
-    generate_recommendations = st.button(
-        "🎬 Recommend Movies",
-        type="primary",
-        use_container_width=True
-    )
-
-
-# -------------------- RECOMMENDATION ENGINE --------------------
-
-def recommend(movie_id, top_n=10):
-    movie_id = str(movie_id)
-
-    matches = movies_model.index[
-        movies_model["id"].astype(str) == movie_id
-    ].tolist()
-
-    if not matches:
-        return None
-
-    movie_index = matches[0]
-
-    if str(movies_model.iloc[movie_index]["id"]) != movie_id:
-        return None
-
-    genre_scores = cosine_similarity(
-        genre_matrix[movie_index], genre_matrix
-    ).ravel()
-
-    director_scores = cosine_similarity(
-        director_matrix[movie_index], director_matrix
-    ).ravel()
-
-    language_scores = cosine_similarity(
-        language_matrix[movie_index], language_matrix
-    ).ravel()
-
-    # Preserve the original scoring formula.
-    base_scores = (
-        0.65 * genre_scores
-        + 0.15 * director_scores
-        + 0.10 * language_scores
-    )
-
-    sentiment = pd.to_numeric(
-        movies_model["smoothed_sentiment"],
-        errors="coerce"
-    ).to_numpy(dtype=float)
-
-    has_sentiment = np.isfinite(sentiment)
-
-    final_scores = base_scores.copy()
-
-    final_scores[has_sentiment] += (
-        0.10 * sentiment[has_sentiment]
-    )
-
-    # Exclude the selected movie by row and ID.
-    final_scores[movie_index] = -1
-
-    ranking = pd.DataFrame({
-        "index": np.arange(n_movies),
-        "score": final_scores,
-        "id": movies_model["id"].astype(str).to_numpy()
-    })
-
-    ranking = ranking[
-        (ranking["index"] != movie_index)
-        & (ranking["id"] != movie_id)
-    ]
-
-    ranking = ranking.sort_values(
-        ["score", "id"],
-        ascending=[False, True],
-        kind="mergesort"
-    )
-
-    top_indices = ranking.head(top_n)["index"].to_numpy()
-
-    result = movies_model.iloc[top_indices][[
-        "title",
-        "genre",
-        "director",
-        "originalLanguage",
-        "reviewCount",
-        "smoothed_sentiment"
-    ]].copy()
-
-    result["Recommendation Score"] = [
-        round(float(final_scores[i]), 4)
-        for i in top_indices
-    ]
-
-    result = result.rename(columns={
-        "title": "Movie",
-        "genre": "Genre",
-        "director": "Director",
-        "originalLanguage": "Language",
-        "reviewCount": "Review Count",
-        "smoothed_sentiment": "Critic Sentiment"
-    })
-
-    result["Critic Sentiment"] = pd.to_numeric(
-        result["Critic Sentiment"],
-        errors="coerce"
-    ).round(4)
-
-    return result.reset_index(drop=True)
-
-
-# -------------------- MOVIE RECOMMENDATION CARDS --------------------
-
-if generate_recommendations:
-    if selected_movie_id is None:
-        st.warning("Please search for and select a movie first.")
-
-    else:
-        selected_rows = movies_model[
-            movies_model["id"].astype(str) == selected_movie_id
-        ]
-
-        if selected_rows.empty:
-            st.error("The selected movie could not be found.")
+st.markdown('<div class="panel">', unsafe_allow_html=True)
+st.markdown("### 🔎 Find Your Movie")
+st.caption("Search for a film, choose the exact match, and customize your recommendations.")
+c1, c2 = st.columns([1, 1])
+with c1:
+    search = st.text_input("Search for a movie", placeholder="Type at least 3 letters, e.g. Toy Story")
+selected_id = None
+with c2:
+    st.markdown("**🎬 Choose a movie from the search results**")
+    if len(search.strip()) >= 3:
+        found = options[options["title"].str.contains(search.strip(), case=False, regex=False, na=False)].head(100)
+        if not found.empty:
+            choices = dict(zip(found["display"], found["id"]))
+            picked = st.selectbox("Choose a movie", list(choices), index=None, placeholder="Select the exact movie...", label_visibility="collapsed")
+            if picked is not None:
+                selected_id = choices[picked]
         else:
-            selected_title = str(selected_rows.iloc[0]["title"])
+            st.info("No matching movies found. Try another title.")
+    else:
+        st.selectbox("Choose a movie", [], disabled=True, placeholder="Search above to see results", label_visibility="collapsed")
+c3, c4 = st.columns([1.5, 1])
+with c3:
+    top_n = st.slider("🎚️ Number of recommendations", 4, 12, 8)
+with c4:
+    st.markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
+    run = st.button("🎁 Recommend Movies", type="primary", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-            with st.spinner("Finding movies you'll love..."):
-                recommendations = recommend(selected_movie_id, top_n)
+def recommend(movie_id, top_n):
+    movie_id = str(movie_id)
+    matched = movies.index[movies["id"].astype(str) == movie_id].tolist()
+    if not matched:
+        return None
+    idx = matched[0]
+    gs = cosine_similarity(genre_matrix[idx], genre_matrix).ravel()
+    ds = cosine_similarity(director_matrix[idx], director_matrix).ravel()
+    ls = cosine_similarity(language_matrix[idx], language_matrix).ravel()
+    scores = 0.65 * gs + 0.15 * ds + 0.10 * ls
+    sentiment = pd.to_numeric(movies["smoothed_sentiment"], errors="coerce").to_numpy(dtype=float)
+    valid = np.isfinite(sentiment)
+    scores[valid] += 0.10 * sentiment[valid]
+    ranking = pd.DataFrame({"row": np.arange(n), "score": scores, "id": movies["id"].astype(str).to_numpy()})
+    ranking = ranking[(ranking["row"] != idx) & (ranking["id"] != movie_id)]
+    ranking = ranking.sort_values(["score", "id"], ascending=[False, True], kind="mergesort").head(top_n)
+    out = movies.iloc[ranking["row"].to_numpy()][["id","title","genre","director","originalLanguage","reviewCount","smoothed_sentiment"]].copy()
+    out["Recommendation Score"] = [round(float(scores[i]), 4) for i in ranking["row"]]
+    out = out.rename(columns={"title":"Movie","genre":"Genre","director":"Director","originalLanguage":"Language","reviewCount":"Review Count","smoothed_sentiment":"Critic Sentiment"})
+    out["Critic Sentiment"] = pd.to_numeric(out["Critic Sentiment"], errors="coerce").round(4)
+    return out.reset_index(drop=True)
 
-            if recommendations is None:
-                st.error("Could not generate recommendations for this movie.")
+if run:
+    if selected_id is None:
+        st.warning("Please search for a movie and select it from the results first.")
+    else:
+        chosen = movies[movies["id"].astype(str) == selected_id].iloc[0]
+        title = str(chosen["title"])
+        with st.spinner("Finding your next favourite films..."):
+            recs = recommend(selected_id, top_n)
+        if recs is None or recs.empty:
+            st.warning("No recommendations are available for this selection.")
+        else:
+            st.markdown("---")
+            st.markdown(f"## ✨ Because you liked <span style='color:#ff4059'>{title}</span>", unsafe_allow_html=True)
+            st.caption("Here are some similar movies you might enjoy.")
+            api_key = st.secrets.get("TMDB_API_KEY", "") if hasattr(st, "secrets") else ""
+            for start in range(0, len(recs), 4):
+                cols = st.columns(4, gap="medium")
+                for col, (_, movie) in zip(cols, recs.iloc[start:start+4].iterrows()):
+                    with col:
+                        poster = get_poster(movie["Movie"], api_key)
+                        sentiment_value = movie["Critic Sentiment"]
+                        sentiment_text = f"{float(sentiment_value):.3f}" if pd.notna(sentiment_value) else "N/A"
+                        if poster:
+                            poster_html = f'<div class="poster"><img src="{poster}" alt="Movie poster"></div>'
+                        else:
+                            poster_html = '<div class="poster">🎬</div>'
+                        st.markdown(f"""
+                        <div class="movie-card">
+                          {poster_html}
+                          <div class="movie-name">{movie["Movie"]}</div>
+                          <span class="score">{float(movie["Recommendation Score"]):.4f}</span>
+                          <div class="meta">🎭 {movie["Genre"] if pd.notna(movie["Genre"]) else "Genre unavailable"}</div>
+                          <div class="meta">🎬 {movie["Director"] if pd.notna(movie["Director"]) else "Director unavailable"}</div>
+                          <div class="meta">🌐 {movie["Language"] if pd.notna(movie["Language"]) else "Language unavailable"}</div>
+                          <div class="meta">⭐ Reviews: {movie["Review Count"] if pd.notna(movie["Review Count"]) else "N/A"} · Sentiment: {sentiment_text}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            st.markdown("## ☷ All Recommended Movies")
+            table = recs.copy()
+            table.insert(0, "Rank", np.arange(1, len(table) + 1))
+            table = table.drop(columns=["id"]).rename(columns={"Recommendation Score":"Match Score"})
+            st.dataframe(table, use_container_width=True, hide_index=True, column_config={
+                "Rank": st.column_config.NumberColumn("№", width="small"),
+                "Match Score": st.column_config.ProgressColumn("Match Score", min_value=0.0, max_value=1.0, format="%.4f"),
+                "Critic Sentiment": st.column_config.NumberColumn("Critic Sentiment", format="%.4f"),
+            })
 
-            elif recommendations.empty:
-                st.warning("No recommendations are available.")
-
-            else:
-                st.markdown("---")
-                st.markdown(
-                    f"## 🍿 Movies similar to **{selected_title}**"
-                )
-                st.caption(
-                    f"Showing {len(recommendations)} recommendations "
-                    "ranked by your model."
-                )
-
-                # Summary metrics
-                metric1, metric2 = st.columns(2)
-
-                metric1.metric(
-                    "Movies found",
-                    len(recommendations)
-                )
-
-                metric2.metric(
-                    "Selected movie",
-                    selected_title
-                )
-
-                st.markdown("### Your recommendations")
-
-                # Two cards per row.
-                for start in range(0, len(recommendations), 2):
-                    columns = st.columns(2)
-
-                    for offset, column in enumerate(columns):
-                        row_index = start + offset
-
-                        if row_index >= len(recommendations):
-                            break
-
-                        movie = recommendations.iloc[row_index]
-
-                        with column:
-                            with st.container(border=True):
-                                st.markdown(
-                                    f"**#{row_index + 1} · "
-                                    f"{movie['Movie']}**"
-                                )
-
-                                st.markdown(
-                                    f"<span style='color:#FF414D;"
-                                    f"font-size:13px;font-weight:600;'>"
-                                    f"SIMILARITY SCORE: "
-                                    f"{movie['Recommendation Score']:.4f}"
-                                    f"</span>",
-                                    unsafe_allow_html=True
-                                )
-
-                                genre = movie["Genre"]
-                                director = movie["Director"]
-                                language = movie["Language"]
-
-                                st.caption(
-                                    f"🎭 Genre: {genre if pd.notna(genre) and str(genre).strip() else 'Not available'}"
-                                )
-
-                                st.caption(
-                                    f"🎬 Director: {director if pd.notna(director) and str(director).strip() else 'Not available'}"
-                                )
-
-                                st.caption(
-                                    f"🌐 Language: {language if pd.notna(language) and str(language).strip() else 'Not available'}"
-                                )
-
-                                review_count = pd.to_numeric(
-                                    pd.Series([movie["Review Count"]]),
-                                    errors="coerce"
-                                ).iloc[0]
-
-                                sentiment_value = movie["Critic Sentiment"]
-
-                                info1, info2 = st.columns(2)
-
-                                info1.metric(
-                                    "Reviews",
-                                    (
-                                        f"{review_count:,.0f}"
-                                        if pd.notna(review_count)
-                                        else "N/A"
-                                    )
-                                )
-
-                                info2.metric(
-                                    "Critic sentiment",
-                                    (
-                                        f"{sentiment_value:.3f}"
-                                        if pd.notna(sentiment_value)
-                                        else "N/A"
-                                    )
-                                )
-
-                with st.expander("View all recommendations in a table"):
-                    st.dataframe(
-                        recommendations,
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            "Recommendation Score": st.column_config.NumberColumn(
-                                "Recommendation Score",
-                                format="%.4f"
-                            ),
-                            "Critic Sentiment": st.column_config.NumberColumn(
-                                "Critic Sentiment",
-                                format="%.4f"
-                            )
-                        }
-                    )
-
-
-# -------------------- FOOTER --------------------
-
-st.markdown("---")
-
-st.caption(
-    "Movie Discovery · Recommendations use genre, director, language, "
-    "and available smoothed critic-review sentiment."
-)
+st.markdown("<div class='footer'>Movie Discovery · Recommendations use content similarity and available critic-review sentiment.</div>", unsafe_allow_html=True)
