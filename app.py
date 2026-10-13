@@ -166,6 +166,26 @@ div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
     -webkit-text-fill-color: #e50914 !important;
 }
 
+/* NAVIGATION VISIBILITY FIX */
+.site-nav .site-brand,
+.site-nav .site-brand span {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.site-nav .site-links a,
+.site-nav .site-links a:visited {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
+.site-nav .site-links a:hover,
+.site-nav .site-links a.active {
+    color: #e50914 !important;
+    -webkit-text-fill-color: #e50914 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
