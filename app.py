@@ -187,9 +187,7 @@ hero_featured_title = "Interstellar"
 hero_api_key = get_tmdb_api_key()
 hero_backdrop = get_backdrop(hero_featured_title, hero_api_key) if hero_api_key else None
 hero_style = (
-    f"background-image: linear-gradient(90deg,rgba(8,8,8,.86) 0%,rgba(8,8,8,.58) 35%,rgba(8,8,8,.12) 75%,rgba(8,8,8,.08) 100%), "
-    f"linear-gradient(0deg,rgba(8,8,8,.48),transparent 58%), url('{escape(hero_backdrop, quote=True)}');"
-    if hero_backdrop else ""
+    "background-image: none; background-color: #101010;"
 )
 st.markdown(f"""
 <div class="hero" id="home-hero" style="{hero_style}">
