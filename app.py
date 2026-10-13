@@ -323,40 +323,102 @@ with st.container(border=True):
         run = st.button("🎁 Recommend Movies", type="primary", use_container_width=True)
 
 
+
 def recommend(movie_id: str, top_n: int) -> pd.DataFrame | None:
-    """Rank similar movies while excluding the selected movie and duplicate IDs."""
+    """Rank similar movies, excluding the selected movie and duplicate titles."""
     movie_id = str(movie_id)
-    matched_rows = movies.index[movies["id"].astype(str).eq(movie_id)].tolist()
+
+    matched_rows = movies.index[
+        movies["id"].astype(str).eq(movie_id)
+    ].tolist()
+
     if not matched_rows:
         return None
+
     movie_index = matched_rows[0]
+    selected_title_key = " ".join(
+        str(movies.iloc[movie_index]["title"]).casefold().split()
+    )
 
-    genre_scores = cosine_similarity(genre_matrix[movie_index], genre_matrix).ravel()
-    director_scores = cosine_similarity(director_matrix[movie_index], director_matrix).ravel()
-    language_scores = cosine_similarity(language_matrix[movie_index], language_matrix).ravel()
-    scores = 0.65 * genre_scores + 0.15 * director_scores + 0.10 * language_scores
+    # Calculate content similarity.
+    genre_scores = cosine_similarity(
+        genre_matrix[movie_index], genre_matrix
+    ).ravel()
 
-    sentiment = pd.to_numeric(movies["smoothed_sentiment"], errors="coerce").to_numpy(dtype=float)
+    director_scores = cosine_similarity(
+        director_matrix[movie_index], director_matrix
+    ).ravel()
+
+    language_scores = cosine_similarity(
+        language_matrix[movie_index], language_matrix
+    ).ravel()
+
+    scores = (
+        0.65 * genre_scores
+        + 0.15 * director_scores
+        + 0.10 * language_scores
+    )
+
+    sentiment = pd.to_numeric(
+        movies["smoothed_sentiment"], errors="coerce"
+    ).to_numpy(dtype=float)
+
     valid_sentiment = np.isfinite(sentiment)
     scores[valid_sentiment] += 0.10 * sentiment[valid_sentiment]
 
+    # Normalize titles so duplicate title variants are excluded too.
+    title_keys = (
+        movies["title"]
+        .fillna("")
+        .astype(str)
+        .str.casefold()
+        .str.split()
+        .str.join(" ")
+        .to_numpy()
+    )
+
     ranking = pd.DataFrame({
-        "row": np.arange(n_movies),
+        "row": np.arange(len(movies)),
         "score": scores,
         "id": movies["id"].astype(str).to_numpy(),
+        "title_key": title_keys,
     })
-    ranking = ranking[(ranking["row"] != movie_index) & (ranking["id"] != movie_id)]
-    ranking = ranking.drop_duplicates(subset=["id"]).sort_values(
-        ["score", "id"], ascending=[False, True], kind="mergesort"
-    ).head(int(top_n))
+
+    # Exclude the exact selected row, its ID, and identical titles.
+    ranking = ranking[
+        (ranking["row"] != movie_index)
+        & (ranking["id"] != movie_id)
+        & (ranking["title_key"] != selected_title_key)
+    ]
+
+    ranking = (
+        ranking
+        .drop_duplicates(subset=["id"])
+        .sort_values(
+            ["score", "id"],
+            ascending=[False, True],
+            kind="mergesort",
+        )
+        .head(int(top_n))
+    )
 
     selected_rows = ranking["row"].to_numpy(dtype=int)
+
     result = movies.iloc[selected_rows][[
-        "id", "title", "genre", "director", "originalLanguage", "reviewCount", "smoothed_sentiment"
+        "id",
+        "title",
+        "genre",
+        "director",
+        "originalLanguage",
+        "reviewCount",
+        "smoothed_sentiment",
     ]].copy()
-    result["Recommendation Score"] = [round(float(scores[row]), 4) for row in selected_rows]
+
+    result["Recommendation Score"] = [
+        round(float(scores[row]), 4) for row in selected_rows
+    ]
+
     result = result.rename(columns={
-        "id": "id",
         "title": "Movie",
         "genre": "Genre",
         "director": "Director",
@@ -364,9 +426,17 @@ def recommend(movie_id: str, top_n: int) -> pd.DataFrame | None:
         "reviewCount": "Review Count",
         "smoothed_sentiment": "Critic Sentiment",
     })
-    result["Critic Sentiment"] = pd.to_numeric(result["Critic Sentiment"], errors="coerce").round(4)
-    result["Review Count"] = pd.to_numeric(result["Review Count"], errors="coerce")
+
+    result["Critic Sentiment"] = pd.to_numeric(
+        result["Critic Sentiment"], errors="coerce"
+    ).round(4)
+
+    result["Review Count"] = pd.to_numeric(
+        result["Review Count"], errors="coerce"
+    )
+
     return result.reset_index(drop=True)
+
 
 
 if run:
