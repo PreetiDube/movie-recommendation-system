@@ -58,6 +58,27 @@ def get_poster(title, api_key):
         return None
     return None
 
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_backdrop(title, api_key):
+    """Return a TMDB backdrop URL when one is available."""
+    if not api_key or requests is None or not str(title).strip():
+        return None
+    try:
+        response = requests.get(
+            "https://api.themoviedb.org/3/search/movie",
+            params={"api_key": api_key, "query": str(title).strip(), "include_adult": "false"},
+            timeout=8,
+        )
+        response.raise_for_status()
+        for result in response.json().get("results", []):
+            backdrop_path = result.get("backdrop_path")
+            if backdrop_path:
+                return "https://image.tmdb.org/t/p/w1280" + backdrop_path
+    except Exception:
+        return None
+    return None
+
 bundle = load_model()
 movies = bundle["movies"].reset_index(drop=True)
 genre_matrix = bundle["genre_matrix"]
@@ -81,8 +102,12 @@ st.markdown("""
 .block-container{max-width:1600px;padding-top:.7rem;padding-bottom:2rem}
 header[data-testid="stHeader"]{background:rgba(8,8,8,.92)}
 section[data-testid="stSidebar"]{background:#111}
-.hero{position:relative;overflow:hidden;min-height:310px;padding:38px 34px 34px;border-radius:8px;margin:0 0 24px;background:radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%);display:flex;align-items:center}
-.hero:after{content:"";position:absolute;right:6%;top:-30%;width:310px;height:420px;border-radius:50%;background:radial-gradient(ellipse,rgba(229,9,20,.22),transparent 68%);pointer-events:none}
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#111;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.82) 38%,rgba(8,8,8,.34) 72%,rgba(8,8,8,.18) 100%),linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%),var(--hero-backdrop,radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%));background-size:cover;background-position:center 28%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
+.hero-content{max-width:780px;position:relative;z-index:1}
+.hero-kicker{display:inline-flex;align-items:center;gap:8px;color:#fff;background:rgba(229,9,20,.18);border:1px solid rgba(229,9,20,.55);border-radius:3px;padding:6px 9px;font-size:11px;letter-spacing:2px;font-weight:800;text-transform:uppercase}
+.hero-sub{color:#e0e0e0;font-size:16px;max-width:650px;line-height:1.65;text-shadow:0 1px 10px #000}
+.hero-title{font-size:clamp(34px,4.6vw,62px);font-weight:900;line-height:1.04;margin:16px 0 14px;max-width:850px;text-shadow:0 2px 20px rgba(0,0,0,.6)}
+.hero-title span{color:#ff4059}
 .eyebrow{color:#e50914;letter-spacing:4px;font-size:12px;font-weight:800;text-transform:uppercase}
 .hero-title{font-size:clamp(32px,4vw,56px);font-weight:900;line-height:1.08;margin:10px 0 14px;max-width:850px}
 .hero-title span{color:#e50914}.hero-sub{color:#c4c4c4;font-size:16px;max-width:700px;line-height:1.6}
@@ -107,11 +132,26 @@ div[data-testid="stDataFrame"]{border:1px solid #292929;border-radius:8px;overfl
 .footer{color:#777;font-size:12px;text-align:center;margin-top:35px;padding:20px;border-top:1px solid #222}
 h2,h3{color:#fff}
 </style>
-<div class="hero">
- <div>
-  <div class="eyebrow">Your next favourite film</div>
-  <div class="hero-title">Movie <span>Recommendation</span> System</div>
-  <div class="hero-sub">Discover your next favourite film with personalized recommendations powered by movie genres, directors, languages, and critic-review sentiment.</div>
+</style>
+""", unsafe_allow_html=True)
+
+# Use a TMDB backdrop when available; keep a gradient fallback if no image is found.
+hero_candidates = movies["title"].dropna().astype(str).str.strip()
+hero_candidates = hero_candidates[hero_candidates.ne("")]
+hero_featured_title = hero_candidates.iloc[0] if not hero_candidates.empty else "Discover Movies"
+hero_api_key = get_tmdb_api_key()
+hero_backdrop = get_backdrop(hero_featured_title, hero_api_key) if hero_api_key else None
+hero_style = (
+    f"background-image: linear-gradient(90deg,rgba(8,8,8,.97) 0%,rgba(8,8,8,.78) 38%,rgba(8,8,8,.25) 75%,rgba(8,8,8,.18) 100%), "
+    f"linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%), url('{escape(hero_backdrop, quote=True)}');"
+    if hero_backdrop else ""
+)
+st.markdown(f"""
+<div class="hero" style="{hero_style}">
+ <div class="hero-content">
+   <div class="hero-kicker">▶ YOUR NEXT FAVOURITE FILM</div>
+   <div class="hero-title">Movie <span>Recommendation</span><br>System</div>
+   <div class="hero-sub">Discover your next favourite film with personalized recommendations powered by movie genres, directors, languages, and critic-review sentiment.</div>
  </div>
 </div>
 """, unsafe_allow_html=True)
