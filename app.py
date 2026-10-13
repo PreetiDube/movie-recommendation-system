@@ -209,7 +209,20 @@ div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
     -webkit-text-fill-color: #e50914 !important;
     opacity: 1 !important;
 }
+div[data-testid="stAppViewContainer"] nav.site-nav#home .site-links a,
+div[data-testid="stAppViewContainer"] nav.site-nav#home .site-links a:visited {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    font-weight: 700 !important;
+    text-shadow: none !important;
+}
 
+div[data-testid="stAppViewContainer"] nav.site-nav#home .site-links a:hover,
+div[data-testid="stAppViewContainer"] nav.site-nav#home .site-links a.active {
+    color: #e50914 !important;
+    -webkit-text-fill-color: #e50914 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
