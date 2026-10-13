@@ -100,6 +100,15 @@ st.markdown("""
 <style>
 .stApp{background:#080808;color:#fff}
 .block-container{max-width:1600px;padding-top:.7rem;padding-bottom:2rem}
+.site-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 4px 16px;margin-bottom:8px;border-bottom:1px solid #242424}
+.site-brand{font-size:20px;font-weight:900;color:#fff;white-space:nowrap}
+.site-brand span{color:#e50914}
+.site-links{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.site-links a{color:#d4d4d4;text-decoration:none;font-size:13px;font-weight:650}
+.site-links a:hover,.site-links a.active{color:#ff4059}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 2px}
+.section-heading h3{margin:0}
+@media(max-width:700px){.site-nav{align-items:flex-start;flex-direction:column}.site-links{gap:16px}.site-brand{font-size:17px}}
 header[data-testid="stHeader"]{background:rgba(8,8,8,.92)}
 section[data-testid="stSidebar"]{background:#111}
 .hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#111;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.82) 38%,rgba(8,8,8,.34) 72%,rgba(8,8,8,.18) 100%),linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%),var(--hero-backdrop,radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%));background-size:cover;background-position:center 38%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
@@ -132,7 +141,18 @@ div[data-testid="stDataFrame"]{border:1px solid #292929;border-radius:8px;overfl
 .footer{color:#777;font-size:12px;text-align:center;margin-top:35px;padding:20px;border-top:1px solid #222}
 h2,h3{color:#fff}
 </style>
-</style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<nav class="site-nav" id="home">
+  <div class="site-brand">🎬 Movie <span>Recommendation</span> System</div>
+  <div class="site-links">
+    <a class="active" href="#home">⌂ Home</a>
+    <a href="#discover">⌕ Discover</a>
+    <a href="#popular">▣ Popular Movies</a>
+    <a href="#about">ⓘ About</a>
+  </div>
+</nav>
 """, unsafe_allow_html=True)
 
 # Use a TMDB backdrop when available; keep a gradient fallback if no image is found.
@@ -147,7 +167,7 @@ hero_style = (
     if hero_backdrop else ""
 )
 st.markdown(f"""
-<div class="hero" style="{hero_style}">
+<div class="hero" id="home-hero" style="{hero_style}">
  <div class="hero-content">
    <div class="hero-kicker">▶ YOUR NEXT FAVOURITE FILM</div>
    <div class="hero-title">Movie <span>Recommendation</span><br>System</div>
@@ -165,7 +185,7 @@ options["display"] = options["title"]
 options.loc[dupes, "display"] = options.loc[dupes, "title"] + " · " + options.loc[dupes, "id"]
 options = options.sort_values(["title", "id"])
 
-st.markdown('<div class="panel">', unsafe_allow_html=True)
+st.markdown('<div class="panel" id="discover">', unsafe_allow_html=True)
 st.markdown("### 🔎 Find Your Movie")
 st.caption("Search for a film, choose the exact match, and customize your recommendations.")
 c1, c2 = st.columns([1, 1])
@@ -192,6 +212,37 @@ with c4:
     st.markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
     run = st.button("🎁 Recommend Movies", type="primary", use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
+
+# Popular row uses review counts from the existing dataset.
+st.markdown('<div id="popular"></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-heading"><h3>🍿 Popular Movies</h3></div>', unsafe_allow_html=True)
+popular_source = movies.copy()
+popular_source["_review_count_numeric"] = pd.to_numeric(popular_source["reviewCount"], errors="coerce").fillna(0)
+popular_source = popular_source.sort_values(
+    ["_review_count_numeric", "title"], ascending=[False, True], kind="mergesort"
+).drop_duplicates(subset=["id"]).head(8)
+
+popular_api_key = get_tmdb_api_key()
+popular_cards = []
+for _, popular_movie in popular_source.iterrows():
+    popular_title = escape(str(popular_movie["title"]))
+    popular_poster = get_poster(str(popular_movie["title"]), popular_api_key) if popular_api_key and requests is not None else None
+    if popular_poster:
+        popular_poster_html = f'<img class="carousel-poster" src="{escape(popular_poster, quote=True)}" alt="Poster for {popular_title}" loading="lazy">'
+    else:
+        popular_poster_html = '<div class="carousel-poster poster-missing" style="display:flex;align-items:center;justify-content:center">POSTER UNAVAILABLE</div>'
+    popular_cards.append(textwrap.dedent(f"""
+        <div class="carousel-card">
+          {popular_poster_html}
+          <div class="carousel-title">{popular_title}</div>
+          <span class="score">Reviews · {int(popular_movie["_review_count_numeric"])}</span>
+        </div>
+    """).strip())
+
+if popular_cards:
+    st.markdown('<div class="carousel">' + "\\n".join(popular_cards) + '</div>', unsafe_allow_html=True)
+else:
+    st.caption("Popular movie data is not available yet.")
 
 def recommend(movie_id, top_n):
     movie_id = str(movie_id)
@@ -271,4 +322,4 @@ if run:
                 "Critic Sentiment": st.column_config.NumberColumn("Critic Sentiment", format="%.4f"),
             })
 
-st.markdown("<div class='footer'>Movie Recommendation System · Recommendations use content similarity and available critic-review sentiment. Movie images and metadata provided by TMDB where available.</div>", unsafe_allow_html=True)
+st.markdown("<div class='footer' id='about'>Movie Recommendation System · Recommendations use content similarity and available critic-review sentiment. Movie images and metadata provided by TMDB where available.</div>", unsafe_allow_html=True)
