@@ -291,10 +291,20 @@ options = movies[["id", "title"]].copy()
 options["id"] = options["id"].astype(str)
 options["title"] = options["title"].fillna("").astype(str)
 options = options[options["title"].str.strip().ne("") & options["id"].str.strip().ne("")].drop_duplicates("id")
-duplicate_titles = options["title"].duplicated(keep=False)
+# Keep movie titles clean in the dropdown.
 options["display"] = options["title"]
-options.loc[duplicate_titles, "display"] = options.loc[duplicate_titles, "title"] + " · " + options.loc[duplicate_titles, "id"]
-options = options.sort_values(["title", "id"], kind="mergesort")
+
+# Distinguish only records that have exactly the same title.
+duplicate_titles = options["title"].duplicated(keep=False)
+
+options.loc[duplicate_titles, "display"] = (
+    options.loc[duplicate_titles, "title"]
+    + " ("
+    + options.loc[duplicate_titles, "id"]
+    + ")"
+)
+
+options = options.sort_values(["display", "id"], kind="mergesort")
 
 with st.container(border=True):
     search_col, select_col = st.columns([1, 1])
