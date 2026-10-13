@@ -74,7 +74,7 @@ def get_backdrop(title, api_key):
         for result in response.json().get("results", []):
             backdrop_path = result.get("backdrop_path")
             if backdrop_path:
-                return "https://image.tmdb.org/t/p/w1280" + backdrop_path
+                return "https://image.tmdb.org/t/p/original" + backdrop_path
     except Exception:
         return None
     return None
@@ -102,7 +102,7 @@ st.markdown("""
 .block-container{max-width:1600px;padding-top:.7rem;padding-bottom:2rem}
 header[data-testid="stHeader"]{background:rgba(8,8,8,.92)}
 section[data-testid="stSidebar"]{background:#111}
-.hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#111;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.82) 38%,rgba(8,8,8,.34) 72%,rgba(8,8,8,.18) 100%),linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%),var(--hero-backdrop,radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%));background-size:cover;background-position:center 28%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#111;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.82) 38%,rgba(8,8,8,.34) 72%,rgba(8,8,8,.18) 100%),linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%),var(--hero-backdrop,radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%));background-size:cover;background-position:center 38%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
 .hero-content{max-width:780px;position:relative;z-index:1}
 .hero-kicker{display:inline-flex;align-items:center;gap:8px;color:#fff;background:rgba(229,9,20,.18);border:1px solid rgba(229,9,20,.55);border-radius:3px;padding:6px 9px;font-size:11px;letter-spacing:2px;font-weight:800;text-transform:uppercase}
 .hero-sub{color:#e0e0e0;font-size:16px;max-width:650px;line-height:1.65;text-shadow:0 1px 10px #000}
@@ -136,14 +136,14 @@ h2,h3{color:#fff}
 """, unsafe_allow_html=True)
 
 # Use a TMDB backdrop when available; keep a gradient fallback if no image is found.
-hero_candidates = movies["title"].dropna().astype(str).str.strip()
-hero_candidates = hero_candidates[hero_candidates.ne("")]
-hero_featured_title = hero_candidates.iloc[0] if not hero_candidates.empty else "Discover Movies"
+# Use a deliberate cinematic featured title for the hero instead of the first dataset row.
+# TMDB's original image size helps avoid the visibly soft, low-resolution backdrop.
+hero_featured_title = "Interstellar"
 hero_api_key = get_tmdb_api_key()
 hero_backdrop = get_backdrop(hero_featured_title, hero_api_key) if hero_api_key else None
 hero_style = (
-    f"background-image: linear-gradient(90deg,rgba(8,8,8,.97) 0%,rgba(8,8,8,.78) 38%,rgba(8,8,8,.25) 75%,rgba(8,8,8,.18) 100%), "
-    f"linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%), url('{escape(hero_backdrop, quote=True)}');"
+    f"background-image: linear-gradient(90deg,rgba(8,8,8,.86) 0%,rgba(8,8,8,.58) 35%,rgba(8,8,8,.12) 75%,rgba(8,8,8,.08) 100%), "
+    f"linear-gradient(0deg,rgba(8,8,8,.48),transparent 58%), url('{escape(hero_backdrop, quote=True)}');"
     if hero_backdrop else ""
 )
 st.markdown(f"""
