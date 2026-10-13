@@ -232,7 +232,7 @@ st.markdown(f"""
 <div class="hero" id="home-hero" style="{hero_style}">
  <div class="hero-content">
    <div class="hero-kicker">▶ YOUR NEXT FAVOURITE FILM</div>
-   <div class="hero-title">Movie <span>Recommendation</span><br>System</div>
+   <div class="hero-title">Movie<br><span>Recommendation</span><br>System</div>
    <div class="hero-sub">Discover your next favourite film with personalized recommendations powered by movie genres, directors, languages, and critic-review sentiment.</div>
  </div>
 </div>
