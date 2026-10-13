@@ -104,8 +104,10 @@ st.markdown("""
 .site-brand{font-size:20px;font-weight:900;color:#fff;white-space:nowrap}
 .site-brand span{color:#e50914}
 .site-links{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.site-links a{color:#d4d4d4;text-decoration:none;font-size:13px;font-weight:650}
-.site-links a:hover,.site-links a.active{color:#ff4059}
+.site-links a{color:#f2f2f2 !important;text-decoration:none;font-size:13px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.65);transition:color .18s ease}
+.site-links a:hover,.site-links a.active{color:#ff4059 !important}
+.site-nav{position:relative;z-index:5}
+.site-links a:focus-visible{outline:2px solid #e50914;outline-offset:4px;border-radius:2px}
 .section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 2px}
 .section-heading h3{margin:0}
 @media(max-width:700px){.site-nav{align-items:flex-start;flex-direction:column}.site-links{gap:16px}.site-brand{font-size:17px}}
@@ -211,8 +213,6 @@ with c3:
 with c4:
     st.markdown("<div style='height:27px'></div>", unsafe_allow_html=True)
     run = st.button("🎁 Recommend Movies", type="primary", use_container_width=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
 # Popular row uses review counts from the existing dataset.
 st.markdown('<div id="popular"></div>', unsafe_allow_html=True)
 st.markdown('<div class="section-heading"><h3>🍿 Popular Movies</h3></div>', unsafe_allow_html=True)
@@ -240,7 +240,7 @@ for _, popular_movie in popular_source.iterrows():
     """).strip())
 
 if popular_cards:
-    st.markdown('<div class="carousel">' + "\\n".join(popular_cards) + '</div>', unsafe_allow_html=True)
+    st.markdown("<div class=\'carousel\'>" + "".join(popular_cards) + "</div>", unsafe_allow_html=True)
 else:
     st.caption("Popular movie data is not available yet.")
 
