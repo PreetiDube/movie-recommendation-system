@@ -146,7 +146,7 @@ st.markdown(
     #MainMenu, footer { visibility: hidden; }
     nav.site-nav {
         display:flex; align-items:center; justify-content:space-between; gap:18px;
-        padding:10px 4px 16px; margin-top:15px; margin-bottom:16px; border-bottom:1px solid #26303d;
+        padding:10px 4px 16px; margin-top:20px; margin-bottom:16px; border-bottom:1px solid #26303d;
     }
     .site-brand { color:#fff; font-size:clamp(17px,2vw,23px); font-weight:900; white-space:nowrap; }
     .site-brand span { color:#ff4059; }
