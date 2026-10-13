@@ -142,6 +142,29 @@ div[data-testid="stTextInput"] input,div[data-testid="stSelectbox"] div[data-bas
 div[data-testid="stDataFrame"]{border:1px solid #292929;border-radius:8px;overflow:hidden}
 .footer{color:#777;font-size:12px;text-align:center;margin-top:35px;padding:20px;border-top:1px solid #222}
 h2,h3{color:#fff}
+
+/* FINAL NAV VISIBILITY OVERRIDE */
+div[data-testid="stAppViewContainer"] .site-nav .site-brand,
+div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
+    color: #e50914 !important;
+}
+div[data-testid="stAppViewContainer"] .site-nav .site-links a,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:link,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:visited {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:hover,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
+    color: #e50914 !important;
+    -webkit-text-fill-color: #e50914 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
