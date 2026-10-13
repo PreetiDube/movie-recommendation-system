@@ -100,11 +100,11 @@ st.markdown("""
 <style>
 .stApp{background:#080808;color:#fff}
 .block-container{max-width:1600px;padding-top:.7rem;padding-bottom:2rem}
-.site-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 4px 16px;margin-bottom:8px;border-bottom:1px solid #242424}
+.site-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 4px 16px;margin-bottom:8px;border-bottom:1px solid #242424;background:#080808 !important}
 .site-brand{font-size:20px;font-weight:900;color:#fff;white-space:nowrap}
 .site-brand span{color:#e50914}
 .site-links{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.site-links a{color:#f2f2f2 !important;text-decoration:none;font-size:13px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.65);transition:color .18s ease}
+.site-links a,.site-links a:visited{color:#ffffff !important;opacity:1 !important;text-decoration:none;font-size:13px;font-weight:700;text-shadow:none;transition:color .18s ease}
 .site-links a:hover,.site-links a.active{color:#ff4059 !important}
 .site-nav{position:relative;z-index:5}
 .site-links a:focus-visible{outline:2px solid #e50914;outline-offset:4px;border-radius:2px}
@@ -146,13 +146,13 @@ h2,h3{color:#fff}
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<nav class="site-nav" id="home">
-  <div class="site-brand">🎬 Movie <span>Recommendation</span> System</div>
+<nav class="site-nav" id="home" style="background:#080808;">
+  <div class="site-brand" style="color:#ffffff !important;">🎬 Movie <span style="color:#e50914 !important;">Recommendation</span> System</div>
   <div class="site-links">
-    <a class="active" href="#home">⌂ Home</a>
-    <a href="#discover">⌕ Discover</a>
-    <a href="#popular">▣ Popular Movies</a>
-    <a href="#about">ⓘ About</a>
+    <a class="active" href="#home" style="color:#ffffff !important;">⌂ Home</a>
+    <a href="#discover" style="color:#ffffff !important;">⌕ Discover</a>
+    <a href="#popular" style="color:#ffffff !important;">▣ Popular Movies</a>
+    <a href="#about" style="color:#ffffff !important;">ⓘ About</a>
   </div>
 </nav>
 """, unsafe_allow_html=True)
@@ -187,7 +187,7 @@ options["display"] = options["title"]
 options.loc[dupes, "display"] = options.loc[dupes, "title"] + " · " + options.loc[dupes, "id"]
 options = options.sort_values(["title", "id"])
 
-st.markdown('<div class="panel" id="discover">', unsafe_allow_html=True)
+st.markdown('<div id="discover"></div>', unsafe_allow_html=True)
 st.markdown("### 🔎 Find Your Movie")
 st.caption("Search for a film, choose the exact match, and customize your recommendations.")
 c1, c2 = st.columns([1, 1])
