@@ -194,7 +194,6 @@ div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
     opacity: 1 !important;
     text-shadow: none !important;
 }
-
 div[data-testid="stAppViewContainer"] .site-nav .site-links a,
 div[data-testid="stAppViewContainer"] .site-nav .site-links a:visited {
     color: #ffffff !important;
@@ -205,10 +204,10 @@ div[data-testid="stAppViewContainer"] .site-nav .site-links a:visited {
 }
 
 div[data-testid="stAppViewContainer"] .site-nav .site-links a:hover,
-div[data-testid="stAppViewContainer"] .site-nav .site-links a:focus-visible,
 div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
     color: #e50914 !important;
     -webkit-text-fill-color: #e50914 !important;
+    opacity: 1 !important;
 }
 
 </style>
