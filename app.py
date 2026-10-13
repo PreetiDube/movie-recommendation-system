@@ -4,7 +4,6 @@ import numpy as np
 import joblib
 from pathlib import Path
 import os
-import base64
 from html import escape
 import textwrap
 from sklearn.metrics.pairwise import cosine_similarity
@@ -114,7 +113,7 @@ st.markdown("""
 @media(max-width:700px){.site-nav{align-items:flex-start;flex-direction:column}.site-links{gap:16px}.site-brand{font-size:17px}}
 header[data-testid="stHeader"]{background:rgba(8,8,8,.92)}
 section[data-testid="stSidebar"]{background:#111}
-.hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#080808;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.80) 34%,rgba(8,8,8,.25) 68%,rgba(8,8,8,.08) 100%),linear-gradient(0deg,rgba(8,8,8,.35),transparent 55%);background-size:cover;background-position:center 48%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
+.hero{position:relative;isolation:isolate;overflow:hidden;min-height:410px;padding:44px 38px 40px;border-radius:8px;margin:0 0 24px;background-color:#111;background-image:linear-gradient(90deg,rgba(8,8,8,.98) 0%,rgba(8,8,8,.82) 38%,rgba(8,8,8,.34) 72%,rgba(8,8,8,.18) 100%),linear-gradient(0deg,rgba(8,8,8,.72),transparent 55%),var(--hero-backdrop,radial-gradient(ellipse at 78% 15%,rgba(229,9,20,.32),transparent 35%),linear-gradient(100deg,#080808 0%,#101010 56%,#351013 100%));background-size:cover;background-position:center 38%;display:flex;align-items:center;box-shadow:0 18px 48px rgba(0,0,0,.28)}
 .hero-content{max-width:780px;position:relative;z-index:1}
 .hero-kicker{display:inline-flex;align-items:center;gap:8px;color:#fff;background:rgba(229,9,20,.18);border:1px solid rgba(229,9,20,.55);border-radius:3px;padding:6px 9px;font-size:11px;letter-spacing:2px;font-weight:800;text-transform:uppercase}
 .hero-sub{color:#e0e0e0;font-size:16px;max-width:650px;line-height:1.65;text-shadow:0 1px 10px #000}
@@ -144,26 +143,40 @@ div[data-testid="stDataFrame"]{border:1px solid #292929;border-radius:8px;overfl
 .footer{color:#777;font-size:12px;text-align:center;margin-top:35px;padding:20px;border-top:1px solid #222}
 h2,h3{color:#fff}
 
-/* FINAL NAV VISIBILITY OVERRIDE */
-div[data-testid="stAppViewContainer"] .site-nav .site-brand,
-div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
-    color: #ffffff !important;
+/* FINAL NAV VISIBILITY OVERRIDE — high-specificity Streamlit-safe rules */
+div[data-testid="stAppViewContainer"] div[data-testid="stMarkdown"] nav.site-nav,
+div[data-testid="stAppViewContainer"] nav.site-nav {
+    background: #080808 !important;
     opacity: 1 !important;
+    visibility: visible !important;
+    filter: none !important;
 }
-div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
-    color: #e50914 !important;
-}
-div[data-testid="stAppViewContainer"] .site-nav .site-links a,
-div[data-testid="stAppViewContainer"] .site-nav .site-links a:link,
-div[data-testid="stAppViewContainer"] .site-nav .site-links a:visited {
+div[data-testid="stAppViewContainer"] nav.site-nav .site-brand {
     color: #ffffff !important;
-    opacity: 1 !important;
     -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-shadow: 0 1px 8px rgba(0,0,0,.9) !important;
 }
-div[data-testid="stAppViewContainer"] .site-nav .site-links a:hover,
-div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
+div[data-testid="stAppViewContainer"] nav.site-nav .site-brand span {
     color: #e50914 !important;
     -webkit-text-fill-color: #e50914 !important;
+    opacity: 1 !important;
+}
+div[data-testid="stAppViewContainer"] nav.site-nav .site-links a,
+div[data-testid="stAppViewContainer"] nav.site-nav .site-links a:link,
+div[data-testid="stAppViewContainer"] nav.site-nav .site-links a:visited {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-weight: 800 !important;
+    text-shadow: 0 1px 8px rgba(0,0,0,.9) !important;
+}
+div[data-testid="stAppViewContainer"] nav.site-nav .site-links a:hover,
+div[data-testid="stAppViewContainer"] nav.site-nav .site-links a.active {
+    color: #ff4059 !important;
+    -webkit-text-fill-color: #ff4059 !important;
 }
 
 </style>
@@ -181,33 +194,17 @@ st.markdown("""
 </nav>
 """, unsafe_allow_html=True)
 
-# Keep the approved cinematic hero artwork available even without a TMDB API key.
-# Upload movie_hero.webp into the same GitHub folder as app.py.
-hero_image_path = Path(__file__).parent / "movie_hero.webp"
+# Use a TMDB backdrop when available; keep a gradient fallback if no image is found.
+# Use a deliberate cinematic featured title for the hero instead of the first dataset row.
+# TMDB's original image size helps avoid the visibly soft, low-resolution backdrop.
+hero_featured_title = "Interstellar"
 hero_api_key = get_tmdb_api_key()
-hero_backdrop = get_backdrop("Interstellar", hero_api_key) if hero_api_key else None
-
-if hero_image_path.exists():
-    hero_image_b64 = base64.b64encode(hero_image_path.read_bytes()).decode("ascii")
-    hero_style = (
-        "background-image: linear-gradient(90deg, "
-        "rgba(8,8,8,0.96) 0%, rgba(8,8,8,0.78) 32%, "
-        "rgba(8,8,8,0.24) 68%, rgba(8,8,8,0.06) 100%), "
-        f"url('data:image/webp;base64,{hero_image_b64}');"
-    )
-elif hero_backdrop:
-    hero_style = (
-        "background-image: linear-gradient(90deg, "
-        "rgba(8,8,8,0.96) 0%, rgba(8,8,8,0.65) 45%, "
-        "rgba(8,8,8,0.12) 100%), "
-        f"url('{escape(hero_backdrop, quote=True)}');"
-    )
-else:
-    hero_style = (
-        "background-image: linear-gradient(90deg, #080808 0%, "
-        "#101010 58%, #241014 100%);"
-    )
-
+hero_backdrop = get_backdrop(hero_featured_title, hero_api_key) if hero_api_key else None
+hero_style = (
+    f"background-image: linear-gradient(90deg,rgba(8,8,8,.86) 0%,rgba(8,8,8,.58) 35%,rgba(8,8,8,.12) 75%,rgba(8,8,8,.08) 100%), "
+    f"linear-gradient(0deg,rgba(8,8,8,.48),transparent 58%), url('{escape(hero_backdrop, quote=True)}');"
+    if hero_backdrop else ""
+)
 st.markdown(f"""
 <div class="hero" id="home-hero" style="{hero_style}">
  <div class="hero-content">
