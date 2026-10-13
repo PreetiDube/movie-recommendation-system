@@ -5,6 +5,7 @@ import joblib
 from pathlib import Path
 import os
 from html import escape
+import textwrap
 from sklearn.metrics.pairwise import cosine_similarity
 
 try:
@@ -207,18 +208,19 @@ if run:
                     poster_html = f'<img class="carousel-poster" src="{escape(poster, quote=True)}" alt="Poster for {movie_title}" loading="lazy">'
                 else:
                     poster_html = '<div class="carousel-poster" style="display:flex;align-items:center;justify-content:center;color:#777;font-size:11px;letter-spacing:1px">POSTER UNAVAILABLE</div>'
-                card_html.append(f"""
-                <div class="carousel-card">
-                  {poster_html}
-                  <div class="carousel-title">{movie_title}</div>
-                  <span class="score">Match score · {float(movie["Recommendation Score"]):.3f}</span>
-                  <div class="carousel-meta">Genre · {genre_text}</div>
-                  <div class="carousel-meta">Director · {director_text}</div>
-                  <div class="carousel-meta">Language · {language_text}</div>
-                  <div class="carousel-meta">Reviews · {review_text} &nbsp; Sentiment · {sentiment_text}</div>
-                </div>
-                """)
-            st.markdown('<div class="carousel">' + ''.join(card_html) + '</div>', unsafe_allow_html=True)
+                card_html.append(textwrap.dedent(f"""
+                    <div class="carousel-card">
+                      {poster_html}
+                      <div class="carousel-title">{movie_title}</div>
+                      <span class="score">Match score · {float(movie["Recommendation Score"]):.3f}</span>
+                      <div class="carousel-meta">Genre · {genre_text}</div>
+                      <div class="carousel-meta">Director · {director_text}</div>
+                      <div class="carousel-meta">Language · {language_text}</div>
+                      <div class="carousel-meta">Reviews · {review_text} &nbsp; Sentiment · {sentiment_text}</div>
+                    </div>
+                """).strip())
+            carousel_html = "\n<div class=\"carousel\">\n" + "\n".join(card_html) + "\n</div>"
+            st.markdown(carousel_html, unsafe_allow_html=True)
             st.markdown("## ☷ All Recommended Movies")
             table = recs.copy()
             table.insert(0, "Rank", np.arange(1, len(table) + 1))
