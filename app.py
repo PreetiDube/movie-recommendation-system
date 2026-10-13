@@ -186,6 +186,31 @@ div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
     -webkit-text-fill-color: #e50914 !important;
 }
 
+/* NAVIGATION READABILITY FIX */
+div[data-testid="stAppViewContainer"] .site-nav .site-brand,
+div[data-testid="stAppViewContainer"] .site-nav .site-brand span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+}
+
+div[data-testid="stAppViewContainer"] .site-nav .site-links a,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:visited {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    text-shadow: none !important;
+}
+
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:hover,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a:focus-visible,
+div[data-testid="stAppViewContainer"] .site-nav .site-links a.active {
+    color: #e50914 !important;
+    -webkit-text-fill-color: #e50914 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
