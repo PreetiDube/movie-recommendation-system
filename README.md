@@ -3,6 +3,11 @@
 A content-based movie recommendation system built with Python,
 scikit-learn, and Streamlit.
 
+## 🚀 Live Demo
+
+Try the application here: [Movie Recommendation System](https://movie-recommendation-system-by-preeti-dube.streamlit.app/)
+
+
 ## Features
 
 - Search and select a movie by title
