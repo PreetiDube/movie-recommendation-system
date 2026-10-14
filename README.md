@@ -7,6 +7,10 @@ scikit-learn, and Streamlit.
 
 Try the application here: [Movie Recommendation System](https://movie-recommendation-system-by-preeti-dube.streamlit.app/)
 
+### Preview
+
+![Movie Recommendation System Preview](movie-app-preview.png)
+
 
 ## Features
 
