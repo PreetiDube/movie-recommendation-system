@@ -36,13 +36,13 @@ Try the application here: [Movie Recommendation System](https://movie-recommenda
 ```text
 movie-recommendation-system/
 ├── app.py
+├── README.md
 ├── requirements.txt
 ├── library_versions.json
-├── model/
-│   └── recommendation_model.joblib
-├── notebooks/
-│   └── 01_preprocess_original_rotten_tomatoes.ipynb
-└── reports/
+├── movie-app-preview.png
+├── movie_hero.webp
+├── recommendation_model.joblib
+└── 01_preprocess_original_rotten_tomatoes.ipynb
 ```
 
 ## Run Locally
