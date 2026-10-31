@@ -82,3 +82,10 @@ permissions before publishing data or derived artifacts.
 - Recommendations depend on the selected movie's metadata.
 - Critic sentiment is unavailable for some movies.
 - The recommendation score is a ranking score, not a probability.
+
+## Author
+
+**Preeti Dube**
+
+- GitHub: [PreetiDube](https://github.com/PreetiDube)
+- Project Repository: [Movie Recommendation System](https://github.com/PreetiDube/movie-recommendation-system)
